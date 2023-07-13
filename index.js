@@ -9,6 +9,7 @@ const MAX_EXPIRATION = 60 * 60 * 24 * 30;
 const memcachedClient = new memcached(`${process.env.ENDPOINT}:${process.env.PORT}`);
 exports.chargeRequestRedis = async function (input) {
     const redisClient = await getRedisClient();
+    const timeFirst = new Date().getTime()
     var remainingBalance = await getBalanceRedis(redisClient, KEY);
     var charges = getCharges();
     const isAuthorized = authorizeRequest(remainingBalance, charges);
@@ -20,6 +21,7 @@ exports.chargeRequestRedis = async function (input) {
         };
     }
     remainingBalance = await chargeRedis(redisClient, KEY, charges);
+    console.log(`latency: `, (new Date().getTime()) - timeFirst)
     await disconnectRedis(redisClient);
     return {
         remainingBalance,
@@ -55,9 +57,11 @@ exports.resetMemcached = async function () {
 };
 exports.chargeRequestMemcached = async function (input) {
     var remainingBalance = await getBalanceMemcached(KEY);
+    console.log((new Date().getTime()) - timeFirst)
     const charges = getCharges();
     const isAuthorized = authorizeRequest(remainingBalance, charges);
     if (!isAuthorized) {
+        console.log(`latency: `, (new Date().getTime()) - timeFirst)
         return {
             remainingBalance,
             isAuthorized,
@@ -65,6 +69,7 @@ exports.chargeRequestMemcached = async function (input) {
         };
     }
     remainingBalance = await chargeMemcached(KEY, charges);
+    console.log(`latency: `, (new Date().getTime()) - timeFirst)
     return {
         remainingBalance,
         charges,
